@@ -1,0 +1,68 @@
+@host = http://localhost:8000/api/v1/user
+@host2 = http://localhost:8000/api/v1/company
+
+POST {{host}}/register
+Content-Type: application/json
+
+{
+    "fullname":"Sagar",
+    "email":"sagarji@gmail.com",
+    "phoneNumber":"1234567890",
+    "password":"sagar123",
+    "role":"recruiter"
+}
+
+###
+POST {{host}}/login
+Content-Type: application/json
+
+{
+    "email":"sagar@gmail.com",
+    "password":"sagar123",
+    "role":"recruiter"
+}
+
+
+###
+
+POST {{host}}/profile/update
+Content-Type: application/json
+
+{
+    "fullname":"Sagar ji"
+ 
+}
+
+
+
+###
+GET {{host}}/logout
+
+###
+
+POST {{host2}}/registerCompany
+Content-Type: application/json
+
+# {
+#     "companyName":"Sagar di Company"
+# }
+{
+    "companyName":"Intel"
+}
+
+
+###
+
+GET {{host2}}/get
+
+###
+
+GET {{host2}}/get/6782b20d034b8c02155cd965
+###
+
+PUT {{host2}}/update/6782a5366cba035cb54bbd30
+Content-Type: application/json
+
+{
+    "name":"micromax"
+}
