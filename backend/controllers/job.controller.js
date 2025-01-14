@@ -1,4 +1,4 @@
-import Job from "../models/job.model.js"
+import {Job} from "../models/job.model.js";
 export const postJob = async (req,res) => {
     try {
         const {title, description, requirements, salary, location, jobType, experience, position, companyId} = req.body;
@@ -9,7 +9,7 @@ export const postJob = async (req,res) => {
                 success:false
             })
         }
-        const job = await job.create({
+        const job = await Job.create({
             title,
             description,
             requirements: requirements.split(","),
@@ -40,7 +40,9 @@ try {
             {description : {$regex:keyword, $options:"i"}},
         ]
     }
-    const jobs = await job.find(query)
+    const jobs = await Job.find(query).populate({
+        path:"company"
+    }).sort({createdAt:-1});
     if(!jobs){
         return res.status(404).json({
             message: "Jobs are not found",
@@ -73,7 +75,7 @@ export const getJobById = async(req,res) => {
     }
 }
 // For recruiter
-export const getAdminJons = async (req,res) => {
+export const getAdminJobs = async (req,res) => {
     try {
         const adminId = req.id;
         const jobs = await Job.find({created_by:adminId});

@@ -1,5 +1,7 @@
 @host = http://localhost:8000/api/v1/user
-@host2 = http://localhost:8000/api/v1/company
+@hostcompany = http://localhost:8000/api/v1/company
+@hostjob = http://localhost:8000/api/v1/job
+@hostapplication = http://localhost:8000/api/v1/application
 
 POST {{host}}/register
 Content-Type: application/json
@@ -13,6 +15,19 @@ Content-Type: application/json
 }
 
 ###
+
+POST {{host}}/register
+Content-Type: application/json
+
+{
+    "fullname":"Vijay",
+    "email":"vijay@gmail.com",
+    "phoneNumber":"1234567890",
+    "password":"vijay123",
+    "role":"student"
+}
+
+###
 POST {{host}}/login
 Content-Type: application/json
 
@@ -20,6 +35,15 @@ Content-Type: application/json
     "email":"sagar@gmail.com",
     "password":"sagar123",
     "role":"recruiter"
+}
+###
+POST {{host}}/login
+Content-Type: application/json
+
+{
+    "email":"vijay@gmail.com",
+    "password":"vijay123",
+    "role":"student"
 }
 
 
@@ -40,7 +64,7 @@ GET {{host}}/logout
 
 ###
 
-POST {{host2}}/registerCompany
+POST {{hostcompany}}/registerCompany
 Content-Type: application/json
 
 # {
@@ -53,16 +77,60 @@ Content-Type: application/json
 
 ###
 
-GET {{host2}}/get
+GET {{hostcompany}}/get
 
 ###
 
-GET {{host2}}/get/6782b20d034b8c02155cd965
+GET {{hostcompany}}/get/6782b20d034b8c02155cd965
 ###
 
-PUT {{host2}}/update/6782a5366cba035cb54bbd30
+PUT {{hostcompany}}/update/6782a5366cba035cb54bbd30
 Content-Type: application/json
 
 {
     "name":"micromax"
+}
+
+###
+POST {{hostjob}}/post
+Content-Type: application/json
+
+{
+    "title":"Backend Developer",
+    "description":"I want Backend developer for my company",
+    "requirements":"Reactjs, Shadcnui, Api Testing",
+    "salary":"12",
+    "location":"agra",
+    "jobType":"Full Time",
+    "experience":1,
+    "position":12,
+    "companyId":"6782b3503a2c0842b6d56f73"
+}
+
+###
+
+GET {{hostjob}}/get
+###
+
+GET {{hostjob}}/getadminjob
+
+###
+
+GET {{hostjob}}/get/6786683884cc609d0ecd07b5
+
+###
+GET {{hostapplication}}/apply/67865e6f90c0469b8e960013
+
+###
+GET {{hostapplication}}/get
+
+###
+GET {{hostapplication}}/67865e6f90c0469b8e960013/applicants
+
+###
+POST {{hostapplication}}/status/67868f46172bff46d27d7688/update
+Content-Type: application/json
+
+{
+    "status":"Accepted"
 }

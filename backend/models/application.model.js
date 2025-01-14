@@ -1,4 +1,3 @@
-import { application } from "express";
 import mongoose from "mongoose";
 
 const applicationSchema = new mongoose.Schema({
@@ -10,7 +9,7 @@ const applicationSchema = new mongoose.Schema({
   applicant: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: True
+    required: true
   },
   status: {
     type: String,
