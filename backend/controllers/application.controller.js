@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js";
 import mongoose from "mongoose";
 import { Readable } from "stream";
 import { generateAtsInsights } from "../utils/atsScorer.js";
+import { extractResumeText } from "../utils/resumeParser.js";
 
 export const applyJob = async (req,res) => {
     try {
@@ -43,7 +44,7 @@ export const applyJob = async (req,res) => {
             })
         }
 
-        // Upload resume buffer to GridFS
+        // Upload resume buffer to GridFS (fast path; parsing/ATS happens in background)
         const db = mongoose.connection.db;
         if(!db){
             return res.status(500).json({ message: "Database not initialized", success:false });
@@ -77,27 +78,44 @@ export const applyJob = async (req,res) => {
             resumeFileId: uploadStream.id,
             resumeOriginalName: file.originalname,
             resumeContentType: file.mimetype,
+            resumeExtract: "",
         })
-        if (applicantProfile) {
-            const atsResult = await generateAtsInsights({
-                job,
-                applicant: applicantProfile,
-                applicationInput: { fullName, email, phoneNumber, coverLetter }
-            });
-            if (atsResult?.score !== undefined) {
-                newApplication.atsScore = atsResult.score;
-                newApplication.atsExplanation = atsResult.explanation;
-                await newApplication.save();
-            }
-        }
         job.application.push(newApplication._id);
         await job.save();
-        return res.status(201).json({
+        // respond immediately to reduce applicant wait time
+        res.status(201).json({
             message:"Job applied successful",
             success:true,
             applicationId: newApplication._id,
             resumeFileId: uploadStream.id
-        })
+        });
+
+        // Fire-and-forget background processing: parse resume and run ATS
+        ;(async () => {
+            try {
+                const resumeExtractRaw = await extractResumeText(file);
+                const resumeExtract = resumeExtractRaw ? resumeExtractRaw.slice(0, 6000) : "";
+                const updates = { resumeExtract };
+                if (applicantProfile) {
+                    const atsResult = await generateAtsInsights({
+                        job,
+                        applicant: applicantProfile,
+                        applicationInput: { fullName, email, phoneNumber, coverLetter },
+                        resumeText: resumeExtract,
+                    });
+                    if (atsResult?.score !== undefined) {
+                        updates.atsScore = atsResult.score;
+                        updates.atsExplanation = atsResult.explanation;
+                    }
+                }
+                if (Object.keys(updates).length) {
+                    await Application.findByIdAndUpdate(newApplication._id, { $set: updates });
+                }
+            } catch (bgErr) {
+                console.error("Background ATS processing failed", bgErr);
+            }
+        })();
+        return; // ensure no further work tries to write to res
     } catch (error) {
         console.log(error);
         return res.status(500).json({ message: "Internal server error", success:false });

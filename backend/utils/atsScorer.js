@@ -1,7 +1,15 @@
-const DEFAULT_OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
-const DEFAULT_ATS_MODEL = process.env.OLLAMA_ATS_MODEL || "phi4:mini";
+import dotenv from "dotenv";
+import { spawn } from "child_process";
 
-const buildPrompt = (job, applicant = {}, applicationInput = {}) => {
+dotenv.config();
+
+const GEMINI_CLI_COMMAND = process.env.GEMINI_CLI_COMMAND || "gemini";
+const GEMINI_ATS_MODEL = process.env.GEMINI_ATS_MODEL || "gemini-1.5-flash";
+const GEMINI_CLI_ARGS = process.env.GEMINI_CLI_ARGS
+  ? process.env.GEMINI_CLI_ARGS.split(/\s+/).filter(Boolean)
+  : [];
+
+const buildPrompt = (job, applicant = {}, applicationInput = {}, resumeText = "") => {
   const requirements = Array.isArray(job?.requirements)
     ? job.requirements.join(", ")
     : job?.requirements || "";
@@ -9,12 +17,18 @@ const buildPrompt = (job, applicant = {}, applicationInput = {}) => {
     ? applicant.profile.skills.join(", ")
     : applicant?.profile?.skills || "";
 
+  const resumeSnippet =
+    typeof resumeText === "string" && resumeText.length
+      ? resumeText.slice(0, 2000)
+      : "";
+
   return `You are an Applicant Tracking System that scores how well a candidate matches a job.
 Return ONLY valid minified JSON like {"score":87,"explanation":"short reasoning"}.
 Rules:
 - score must be an integer between 0 and 100.
 - explanation must be <= 60 words and reference specific overlaps.
 - consider role requirements, skills, experience, and cover letter quality.
+- prioritize information from the resume extract when available.
 
 Job Details:
 Title: ${job?.title || ""}
@@ -28,6 +42,7 @@ Phone: ${applicationInput?.phoneNumber || applicant?.phoneNumber || ""}
 Profile Bio: ${applicant?.profile?.bio || ""}
 Profile Skills: ${applicantSkills}
 Cover Letter: ${applicationInput?.coverLetter || ""}
+Resume Extract (trimmed): ${resumeSnippet || "Not provided"}
 `;
 };
 
@@ -41,27 +56,60 @@ const extractJson = (text = "") => {
   }
 };
 
-export const generateAtsInsights = async ({ job, applicant, applicationInput }) => {
-  try {
-    const prompt = buildPrompt(job, applicant, applicationInput);
-    const response = await fetch(`${DEFAULT_OLLAMA_BASE_URL}/api/generate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: DEFAULT_ATS_MODEL,
-        prompt,
-        stream: false,
-      }),
+const sanitizeCommand = (command) =>
+  typeof command === "string" ? command.trim().replace(/^["']+|["']+$/g, "") : command;
+
+const runGeminiCli = (prompt) => {
+  return new Promise((resolve, reject) => {
+    const args = [];
+    if (GEMINI_ATS_MODEL) {
+      args.push("-m", GEMINI_ATS_MODEL);
+    }
+    args.push(...GEMINI_CLI_ARGS);
+    const executable = sanitizeCommand(GEMINI_CLI_COMMAND);
+
+    let child;
+    const spawnOptions = { env: process.env, windowsHide: true };
+    if (process.platform === "win32") {
+      child = spawn(executable, args, { ...spawnOptions, shell: true });
+    } else {
+      child = spawn(executable, args, spawnOptions);
+    }
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", (data) => {
+      stdout += data.toString();
+    });
+    child.stderr.on("data", (data) => {
+      stderr += data.toString();
     });
 
-    if (!response.ok) {
-      console.error("ATS model call failed", response.statusText);
-      return null;
-    }
-    const data = await response.json();
-    const parsed = extractJson(data?.response);
+    child.on("error", (err) => reject(err));
+
+    child.on("close", (code) => {
+      if (code !== 0) {
+        const error = new Error(`Gemini CLI exited with code ${code}`);
+        error.stdout = stdout;
+        error.stderr = stderr;
+        return reject(error);
+      }
+      const cleaned = stdout.replace(/^Loaded cached credentials\.?\s*/i, "").trim();
+      resolve(cleaned);
+    });
+
+    child.stdin.write(prompt);
+    child.stdin.end();
+  });
+};
+
+export const generateAtsInsights = async ({ job, applicant, applicationInput, resumeText }) => {
+  try {
+    const prompt = buildPrompt(job, applicant, applicationInput, resumeText);
+    const raw = await runGeminiCli(prompt);
+    const parsed = extractJson(raw);
     if (!parsed) {
-      console.error("Unable to parse ATS response", data?.response);
+      console.error("Unable to parse ATS response", raw);
       return null;
     }
     const atsScore = Number(parsed.score);
@@ -75,4 +123,3 @@ export const generateAtsInsights = async ({ job, applicant, applicationInput }) 
     return null;
   }
 };
-

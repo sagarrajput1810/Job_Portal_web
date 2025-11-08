@@ -20,6 +20,7 @@ const applicationSchema = new mongoose.Schema({
   resumeFileId: { type: mongoose.Schema.Types.ObjectId },
   resumeOriginalName: { type: String },
   resumeContentType: { type: String },
+  resumeExtract: { type: String },
   atsScore: { type: Number, min: 0, max: 100 },
   atsExplanation: { type: String },
   status: {
