@@ -86,12 +86,12 @@ const Login = () => {
                                 <Input
                                     type="radio"
                                     name="role"
-                                    value="student"
-                                    checked={input.role === 'student'}
+                                    value=" employee"
+                                    checked={input.role === ' employee'}
                                     onChange={changeEventHandler}
                                     className="cursor-pointer"
                                 />
-                                <Label htmlFor="r1">Student</Label>
+                                <Label htmlFor="r1"> employee</Label>
                             </div>
                             <div className="flex items-center space-x-2">
                                 <Input

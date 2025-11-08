@@ -1,12 +1,14 @@
 import React from 'react'
 import { Button } from './ui/button'
 import { Bookmark } from 'lucide-react'
-import { Avatar, AvatarImage } from './ui/avatar'
+import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar'
 import { Badge } from './ui/badge'
 import { useNavigate } from 'react-router-dom'
+import { getInitial } from '@/lib/utils'
 
 const Job = ({job}) => {
     const navigate = useNavigate();
+    const companyInitial = getInitial(job?.company?.name)
     // const jobId = "lsekdhjgdsnfvsdkjf";
 
     const daysAgoFunction = (mongodbTime) => {
@@ -26,7 +28,8 @@ const Job = ({job}) => {
             <div className='flex items-center gap-2 my-2'>
                 <Button className="p-6" variant="outline" size="icon">
                     <Avatar>
-                        <AvatarImage src={job?.company?.logo} />
+                        <AvatarImage src={job?.company?.logo} alt={job?.company?.name || "company logo"} />
+                        <AvatarFallback>{companyInitial}</AvatarFallback>
                     </Avatar>
                 </Button>
                 <div>

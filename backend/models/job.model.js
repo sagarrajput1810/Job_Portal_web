@@ -48,4 +48,12 @@ const jobSchema = new mongoose.Schema({
   }]
 }, { timestamps: true });
 
-export const Job = mongoose.model("Job", jobSchema);
+// expose `applications` virtual to keep frontend naming consistent
+jobSchema.virtual('applications').get(function () {
+  return this.application;
+});
+
+jobSchema.set('toObject', { virtuals: true });
+jobSchema.set('toJSON', { virtuals: true });
+
+export const Job = mongoose.model("Job", jobSchema);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import Navbar from '../shared/Navbar'
 import { Label } from '../ui/label'
 import { Input } from '../ui/input'
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import axios from 'axios'
 import { JOB_API_END_POINT } from '@/utils/constant'
 import { toast } from 'sonner'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 
 const companyArray = [];
@@ -26,7 +26,10 @@ const PostJob = () => {
         companyId: ""
     });
     const [loading, setLoading]= useState(false);
+    const [prefillLoading, setPrefillLoading] = useState(false);
     const navigate = useNavigate();
+    const { id: jobId } = useParams();
+    const isEditMode = Boolean(jobId);
 
     const { companies } = useSelector(store => store.company);
     const changeEventHandler = (e) => {
@@ -38,11 +41,48 @@ const PostJob = () => {
         setInput({...input, companyId:selectedCompany._id});
     };
 
+    useEffect(() => {
+        if (!isEditMode) return;
+        const fetchJobDetails = async () => {
+            try {
+                setPrefillLoading(true);
+                const res = await axios.get(`${JOB_API_END_POINT}/get/${jobId}`, {
+                    withCredentials: true
+                });
+                if (res.data.success) {
+                    const job = res.data.job;
+                    setInput({
+                        title: job.title || "",
+                        description: job.description || "",
+                        requirements: Array.isArray(job.requirements) ? job.requirements.join(", ") : "",
+                        salary: job.salary?.toString() || "",
+                        location: job.location || "",
+                        jobType: job.jobType || "",
+                        experience: (job.experienceLevel ?? job.experience ?? "").toString(),
+                        position: job.position ?? 0,
+                        companyId: job.company?._id || job.company || ""
+                    });
+                }
+            } catch (error) {
+                console.log(error);
+                toast.error(error?.response?.data?.message || "Failed to load job details");
+            } finally {
+                setPrefillLoading(false);
+            }
+        };
+        fetchJobDetails();
+    }, [isEditMode, jobId]);
+
     const submitHandler = async (e) => {
         e.preventDefault();
         try {
             setLoading(true);
-            const res = await axios.post(`${JOB_API_END_POINT}/post`, input,{
+            const payload = {
+                ...input
+            };
+            const endpoint = isEditMode ? `${JOB_API_END_POINT}/update/${jobId}` : `${JOB_API_END_POINT}/post`;
+            const request = isEditMode ? axios.put : axios.post;
+            const res = await request(endpoint, payload,{
                 headers:{
                     'Content-Type':'application/json'
                 },
@@ -58,6 +98,10 @@ const PostJob = () => {
             setLoading(false);
         }
     }
+    const selectedCompanyValue = useMemo(() => {
+        const company = companies.find((companyItem) => companyItem._id === input.companyId);
+        return company ? company.name.toLowerCase() : "";
+    }, [companies, input.companyId]);
 
     return (
         <div>
@@ -147,7 +191,7 @@ const PostJob = () => {
                         </div>
                         {
                             companies.length > 0 && (
-                                <Select onValueChange={selectChangeHandler}>
+                                <Select value={selectedCompanyValue || undefined} onValueChange={selectChangeHandler} disabled={prefillLoading}>
                                     <SelectTrigger className="w-[180px]">
                                         <SelectValue placeholder="Select a Company" />
                                     </SelectTrigger>
@@ -168,10 +212,13 @@ const PostJob = () => {
                         }
                     </div> 
                     {
-                        loading ? <Button className="w-full my-4"> <Loader2 className='mr-2 h-4 w-4 animate-spin' /> Please wait </Button> : <Button type="submit" className="w-full my-4">Post New Job</Button>
+                        loading ? <Button className="w-full my-4" disabled> <Loader2 className='mr-2 h-4 w-4 animate-spin' /> Please wait </Button> : <Button type="submit" className="w-full my-4" disabled={prefillLoading}>{isEditMode ? "Update Job" : "Post New Job"}</Button>
                     }
                     {
                         companies.length === 0 && <p className='text-xs text-red-600 font-bold text-center my-3'>*Please register a company first, before posting a jobs</p>
+                    }
+                    {
+                        isEditMode && prefillLoading && <p className='text-xs text-gray-500 font-medium text-center my-3'>Loading job details...</p>
                     }
                 </form>
             </div>

@@ -21,13 +21,15 @@ const Applicants = () => {
                 console.log(error);
             }
         }
-        fetchAllApplicants();
-    }, []);
+        if (params.id) {
+            fetchAllApplicants();
+        }
+    }, [params.id, dispatch]);
     return (
         <div>
             <Navbar />
             <div className='max-w-7xl mx-auto'>
-                <h1 className='font-bold text-xl my-5'>Applicants {applicants?.applications?.length}</h1>
+                <h1 className='font-bold text-xl my-5'>Applicants {applicants?.applications?.length || 0} (sorted by ATS score)</h1>
                 <ApplicantsTable />
             </div>
         </div>

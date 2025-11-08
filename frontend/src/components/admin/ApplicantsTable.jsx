@@ -11,6 +11,7 @@ const shortlistingStatus = ["Accepted", "Rejected"];
 
 const ApplicantsTable = () => {
     const { applicants } = useSelector(store => store.application);
+    const applicationList = applicants?.applications || [];
 
     const statusHandler = async (status, id) => {
         console.log('called');
@@ -29,12 +30,14 @@ const ApplicantsTable = () => {
     return (
         <div>
             <Table>
-                <TableCaption>A list of your recent applied user</TableCaption>
+                <TableCaption>Highest ATS matches appear first</TableCaption>
                 <TableHeader>
                     <TableRow>
                         <TableHead>FullName</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Contact</TableHead>
+                        <TableHead>ATS Score</TableHead>
+                        <TableHead>ATS Notes</TableHead>
                         <TableHead>Resume</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead className="text-right">Action</TableHead>
@@ -42,17 +45,27 @@ const ApplicantsTable = () => {
                 </TableHeader>
                 <TableBody>
                     {
-                        applicants && applicants?.applications?.map((item) => (
+                        applicationList.map((item) => (
                             <tr key={item._id}>
-                                <TableCell>{item?.applicant?.fullname}</TableCell>
-                                <TableCell>{item?.applicant?.email}</TableCell>
-                                <TableCell>{item?.applicant?.phoneNumber}</TableCell>
-                                <TableCell >
+                                <TableCell>{item?.fullName || item?.applicant?.fullname}</TableCell>
+                                <TableCell>{item?.email || item?.applicant?.email}</TableCell>
+                                <TableCell>{item?.phoneNumber || item?.applicant?.phoneNumber}</TableCell>
+                                <TableCell>{item?.atsScore ?? 'NA'}</TableCell>
+                                <TableCell className="max-w-xs" title={item?.atsExplanation || ''}>
+                                    {item?.atsExplanation ? item.atsExplanation : 'Not available'}
+                                </TableCell>
+                                <TableCell>
                                     {
-                                        item.applicant?.profile?.resume ? <a className="text-blue-600 cursor-pointer" href={item?.applicant?.profile?.resume} target="_blank" rel="noopener noreferrer">{item?.applicant?.profile?.resumeOriginalName}</a> : <span>NA</span>
+                                        item?.applicant?.profile?.resume ? (
+                                            <a className="text-blue-600 cursor-pointer" href={item?.applicant?.profile?.resume} target="_blank" rel="noopener noreferrer">{item?.applicant?.profile?.resumeOriginalName || 'Resume'}</a>
+                                        ) : item?.resumeFileId ? (
+                                            <a className="text-blue-600 cursor-pointer" href={`${APPLICATION_API_END_POINT}/resume/${item?.resumeFileId}`} target="_blank" rel="noopener noreferrer">{item?.resumeOriginalName || 'Resume'}</a>
+                                        ) : (
+                                            <span>NA</span>
+                                        )
                                     }
                                 </TableCell>
-                                <TableCell>{item?.applicant?.createdAt?.split("T")[0]}</TableCell>
+                                <TableCell>{item?.createdAt?.split("T")[0]}</TableCell>
                                 <TableCell className="float-right cursor-pointer">
                                     <Popover>
                                         <PopoverTrigger>

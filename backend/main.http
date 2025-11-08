@@ -24,7 +24,7 @@ Content-Type: application/json
     "email":"vijay@gmail.com",
     "phoneNumber":"1234567890",
     "password":"vijay123",
-    "role":"student"
+    "role":" employee"
 }
 
 ###
@@ -43,7 +43,7 @@ Content-Type: application/json
 {
     "email":"vijay@gmail.com",
     "password":"vijay123",
-    "role":"student"
+    "role":" employee"
 }
 
 
@@ -119,7 +119,31 @@ GET {{hostjob}}/getadminjob
 GET {{hostjob}}/get/6786683884cc609d0ecd07b5
 
 ###
-GET {{hostapplication}}/apply/67865e6f90c0469b8e960013
+POST {{hostapplication}}/apply/67865e6f90c0469b8e960013
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="fullName"
+
+John Doe
+--WebAppBoundary
+Content-Disposition: form-data; name="email"
+
+john@example.com
+--WebAppBoundary
+Content-Disposition: form-data; name="phoneNumber"
+
+1234567890
+--WebAppBoundary
+Content-Disposition: form-data; name="coverLetter"
+
+I am very interested.
+--WebAppBoundary
+Content-Disposition: form-data; name="resume"; filename="resume.pdf"
+Content-Type: application/pdf
+
+< ./sample-resume.pdf
+--WebAppBoundary--
 
 ###
 GET {{hostapplication}}/get

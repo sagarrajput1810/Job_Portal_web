@@ -11,6 +11,17 @@ const applicationSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  // Optional applicant-provided info at apply time
+  fullName: { type: String },
+  email: { type: String },
+  phoneNumber: { type: String },
+  coverLetter: { type: String },
+  // GridFS stored resume reference
+  resumeFileId: { type: mongoose.Schema.Types.ObjectId },
+  resumeOriginalName: { type: String },
+  resumeContentType: { type: String },
+  atsScore: { type: Number, min: 0, max: 100 },
+  atsExplanation: { type: String },
   status: {
     type: String,
     enum: ['Pending', 'Accepted', 'Rejected'],
